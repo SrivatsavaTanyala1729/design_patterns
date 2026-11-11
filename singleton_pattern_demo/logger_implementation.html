@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<!-- Declares that the document uses HTML5 -->
+
+<html lang="en">
+<!-- Starts the HTML document and specifies English as the language -->
+
+<head>
+  <!-- Contains metadata, title, and CSS styles -->
+
+  <meta charset="UTF-8">
+  <!-- Supports Unicode characters, including special symbols -->
+
+  <title>Singleton Pattern Demo</title>
+  <!-- Sets the title displayed in the browser tab -->
+
+  <style>
+    /* CSS styling begins */
+
+    body {
+      /* Applies styling to the entire webpage */
+
+      font-family: Arial, sans-serif;
+      /* Uses Arial font, with sans-serif as fallback */
+
+      padding: 20px;
+      /* Adds 20 pixels of space around the page content */
+    }
+
+    .log-box {
+      /* Styles elements with class="log-box" */
+
+      border: 1px solid #ccc;
+      /* Creates a 1-pixel solid light-gray border */
+
+      padding: 10px;
+      /* Adds 10 pixels of internal spacing */
+
+      margin-top: 10px;
+      /* Adds 10 pixels of space above the log box */
+
+      height: 150px;
+      /* Sets the height of the log box to 150 pixels */
+
+      overflow-y: auto;
+      /* Displays a vertical scrollbar when needed */
+    }
+
+    button {
+      /* Applies styling to all buttons */
+
+      margin: 5px;
+      /* Adds 5 pixels of outer spacing */
+
+      padding: 10px;
+      /* Adds 10 pixels of space inside each button */
+
+      cursor: pointer;
+      /* Changes the mouse cursor to a hand on hover */
+    }
+  </style>
+  <!-- Ends the CSS styling section -->
+
+</head>
+<!-- Ends the HTML head section -->
+
+<body>
+<!-- Begins the visible webpage content -->
+
+  <h2>Singleton Pattern Demo</h2>
+  <!-- Displays the main heading using heading level 2 -->
+
+  <p>
+    <!-- Starts a paragraph -->
+
+    <b>Singleton ensures only one instance exists.</b>
+    <!-- Displays the explanation in bold text -->
+
+  </p>
+  <!-- Ends the paragraph -->
+
+  <button onclick="createLogger()">
+    Create Logger Instance
+  </button>
+  <!-- Creates a button that calls createLogger() when clicked -->
+
+  <button onclick="logMessage()">
+    Add Log Message
+  </button>
+  <!-- Creates a button that calls logMessage() when clicked -->
+
+  <div class="log-box" id="output"></div>
+  <!-- Creates an initially empty container for displaying logs -->
+  <!-- class="log-box" applies CSS styling -->
+  <!-- id="output" allows JavaScript to locate the container -->
+
+  <script>
+    // Begins the JavaScript section
+
+    // ============================================
+    // SINGLETON LOGGER IMPLEMENTATION
+    // ============================================
+
+    const Logger = (function () {
+      // Defines an Immediately Invoked Function Expression (IIFE)
+      // The function executes immediately when defined
+      // It creates a private scope for Singleton variables
+
+      let instance;
+      // Declares a private variable named instance
+      // Initially, its value is undefined
+      // It stores the single Logger object once created
+
+      function createInstance() {
+        // Defines a function responsible for creating a Logger object
+
+        const logs = [];
+        // Creates an empty array to store log messages
+        // This array belongs to the newly created Logger object
+
+        return {
+          // Returns an object containing Logger methods
+
+          addLog: function (msg) {
+            // Defines a method to add a log message
+            // msg represents the message to be stored
+
+            logs.push(msg);
+            // Adds the new message to the logs array
+
+            displayLogs(logs);
+            // Calls displayLogs() to update the webpage
+          },
+          // Ends the addLog method
+
+          getLogs: function () {
+            // Defines a method to retrieve stored log messages
+
+            return logs;
+            // Returns the array containing all log messages
+          }
+          // Ends the getLogs method
+
+        };
+        // Ends the object returned by createInstance()
+
+      }
+      // Ends the createInstance() function
+
+      return {
+        // Returns the public interface of the Singleton
+
+        getInstance: function () {
+          // Defines the method used to access the Singleton object
+
+          if (!instance) {
+            // Checks whether a Logger instance does not exist
+            // !instance is true when instance is undefined
+
+            instance = createInstance();
+            // Creates the Logger object for the first time
+            // Stores the object reference in instance
+
+            displayOutput("✅ New Logger instance created");
+            // Displays a success message on the webpage
+
+          } else {
+            // Executes when the Logger instance already exists
+
+            displayOutput("⚠️ Using existing Logger instance");
+            // Informs the user that the existing object is reused
+          }
+          // Ends the if-else statement
+
+          return instance;
+          // Returns the same Logger object every time
+          // This is the central concept of the Singleton Pattern
+
+        }
+        // Ends the getInstance() method
+
+      };
+      // Ends the public interface object
+
+    })();
+    // Immediately executes the outer function
+    // Assigns its returned object to the Logger constant
+    // The private instance variable remains accessible
+    // through the getInstance() method's closure
+
+    // ============================================
+    // DEMONSTRATION FUNCTIONS
+    // ============================================
+
+    let logger;
+    // Declares a variable to hold the Logger instance
+    // Initially, logger is undefined
+
+    function createLogger() {
+      // Runs when the "Create Logger Instance" button is clicked
+
+      logger = Logger.getInstance();
+      // Requests the Singleton instance
+      // First call creates the object
+      // Later calls return the same object
+    }
+    // Ends the createLogger() function
+
+    function logMessage() {
+      // Runs when the "Add Log Message" button is clicked
+
+      if (!logger) {
+        // Checks whether logger is undefined
+        // Prevents adding logs before obtaining the instance
+
+        displayOutput(
+          "❌ Please create a Logger instance first!"
+        );
+        // Displays an error message if logger is unavailable
+
+        return;
+        // Stops execution of logMessage() immediately
+      }
+      // Ends the if statement
+
+      const msg = "Log entry at " +
+                  new Date().toLocaleTimeString();
+      // Creates a message containing the current local time
+      // new Date() obtains the current date and time
+      // toLocaleTimeString() formats the time for display
+
+      logger.addLog(msg);
+      // Calls the addLog() method of the Singleton object
+      // Stores the message and updates the log display
+
+    }
+    // Ends the logMessage() function
+
+    function displayLogs(logs) {
+      // Defines a function to display all stored log messages
+      // logs is the array received from the Logger object
+
+      const out = document.getElementById("output");
+      // Finds the HTML element whose id is "output"
+      // Stores its reference in the variable out
+
+      out.innerHTML =
+        "<b>Logger Entries:</b><br>" + logs.join("<br>");
+      // Replaces the existing HTML inside the output container
+      // <b> displays "Logger Entries:" in bold
+      // <br> inserts a line break
+      // logs.join("<br>") combines messages with line breaks
+      // Previous status messages in the box are overwritten
+
+    }
+    // Ends the displayLogs() function
+
+    function displayOutput(msg) {
+      // Defines a function to display a status message
+      // msg contains the message to be displayed
+
+      const out = document.getElementById("output");
+      // Finds the output container using its unique ID
+
+      out.innerHTML += msg + "<br>";
+      // Appends the message to the existing HTML content
+      // += preserves existing content and adds new content
+      // <br> moves the next message to a new line
+
+    }
+    // Ends the displayOutput() function
+
+  </script>
+  <!-- Ends the JavaScript section -->
+
+</body>
+<!-- Ends the visible webpage content -->
+
+</html>
+<!-- Ends the HTML document -->
