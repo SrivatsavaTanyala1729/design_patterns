@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!-- Declares HTML5 document -->
+
+<html lang="en">
+<!-- Starts the HTML document -->
+
+<head>
+  <!-- Contains document information -->
+
+  <meta charset="UTF-8">
+  <!-- Supports Unicode characters -->
+
+  <title>Singleton Database Manager</title>
+  <!-- Browser tab title -->
+
+  <style>
+    /* Style the webpage */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f7fb;
+    }
+
+    /* Style the buttons */
+    button {
+      padding: 12px;
+      margin: 5px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    /* Style the output area */
+    #output {
+      margin-top: 15px;
+      padding: 15px;
+      background: white;
+      border: 1px solid #ccc;
+      min-height: 100px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Display application heading -->
+  <h2>University Database Manager</h2>
+
+  <!-- Explain the Singleton concept -->
+  <p>All modules use one shared database manager.</p>
+
+  <!-- Button for Student module -->
+  <button onclick="studentModule()">
+    Student Module
+  </button>
+
+  <!-- Button for Faculty module -->
+  <button onclick="facultyModule()">
+    Faculty Module
+  </button>
+
+  <!-- Button for Examination module -->
+  <button onclick="examModule()">
+    Examination Module
+  </button>
+
+  <!-- Display messages here -->
+  <div id="output"></div>
+
+  <script>
+    // SINGLETON DATABASE MANAGER
+
+    const DatabaseManager = (function () {
+
+      // Private variable storing the single instance
+      let instance;
+
+      // Function to create the database manager
+      function createInstance() {
+
+        // Return a database manager object
+        return {
+
+          // Simulate a database operation
+          query: function (sql) {
+
+            // Display the SQL query
+            display("Executing: " + sql);
+          }
+        };
+      }
+
+      // Public interface of the Singleton
+      return {
+
+        // Method to access the database manager
+        getInstance: function () {
+
+          // Check whether an instance exists
+          if (!instance) {
+
+            // Create the instance only once
+            instance = createInstance();
+
+            // Display creation message
+            display("New Database Manager Created");
+
+          } else {
+
+            // Reuse the existing instance
+            display("Existing Database Manager Reused");
+          }
+
+          // Return the same object
+          return instance;
+        }
+      };
+
+    })();
+    // IIFE executes immediately
+
+    // Student module function
+    function studentModule() {
+
+      // Obtain the Singleton instance
+      const db = DatabaseManager.getInstance();
+
+      // Execute student query
+      db.query("SELECT * FROM Students");
+    }
+
+    // Faculty module function
+    function facultyModule() {
+
+      // Obtain the same Singleton instance
+      const db = DatabaseManager.getInstance();
+
+      // Execute faculty query
+      db.query("SELECT * FROM Faculty");
+    }
+
+    // Examination module function
+    function examModule() {
+
+      // Obtain the same Singleton instance
+      const db = DatabaseManager.getInstance();
+
+      // Execute examination query
+      db.query("SELECT * FROM Exams");
+    }
+
+    // Function to display messages
+    function display(message) {
+
+      // Find the output element
+      const output = document.getElementById("output");
+
+      // Append the message with a line break
+      output.innerHTML += message + "<br>";
+    }
+
+  </script>
+</body>
+</html>

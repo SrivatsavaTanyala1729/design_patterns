@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Library Management - Singleton Pattern</title>
+  <style>
+    /* Apply a clean layout to the entire application. */
+    body { font-family: Arial, sans-serif; background: #f4f7fb; color: #17253a; margin: 0; padding: 24px; }
+    /* Keep the application readable on large screens. */
+    main { max-width: 1000px; margin: auto; }
+    h1 { margin-bottom: 6px; }
+    .subtitle { color: #52647a; margin-top: 0; }
+    /* Display independent application modules as cards. */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    section { background: white; border: 1px solid #dce4ed; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: bold; margin-top: 10px; }
+    input, select { width: 100%; box-sizing: border-box; padding: 10px; margin-top: 5px; border: 1px solid #b7c5d5; border-radius: 6px; }
+    button { background: #175cd3; color: white; border: 0; border-radius: 6px; padding: 10px 14px; margin-top: 12px; cursor: pointer; }
+    button:hover { background: #1047a5; }
+    .secondary { background: #475569; }
+    .secondary:hover { background: #334155; }
+    .status { background: #eaf7ee; color: #176035; padding: 10px; border-radius: 6px; }
+    .error { background: #fff0f0; color: #a32020; padding: 10px; border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 14px; }
+    th, td { text-align: left; border-bottom: 1px solid #e2e8f0; padding: 9px; }
+    th { background: #f1f5f9; }
+    .scroll { overflow-x: auto; }
+    code { background: #edf2fa; padding: 2px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Library Management System</h1>
+  <p class="subtitle">Singleton Design Pattern | One shared LibraryManager for books, members and transactions</p>
+  <p id="instanceStatus" class="status">LibraryManager instance: not yet created</p>
+  <div class="grid">
+    <section>
+      <h2>1. Add Book</h2>
+      <label for="bookId">Book ID</label><input id="bookId" placeholder="B101">
+      <label for="bookTitle">Book Title</label><input id="bookTitle" placeholder="Software Engineering">
+      <label for="bookAuthor">Author</label><input id="bookAuthor" placeholder="Ian Sommerville">
+      <label for="bookQuantity">Quantity</label><input id="bookQuantity" type="number" min="1" step="1" value="1">
+      <button onclick="addBook()">Add Book</button>
+    </section>
+    <section>
+      <h2>2. Register Member</h2>
+      <label for="memberId">Member ID</label><input id="memberId" placeholder="M101">
+      <label for="memberName">Member Name</label><input id="memberName" placeholder="Student Name">
+      <button onclick="registerMember()">Register Member</button>
+    </section>
+    <section>
+      <h2>3. Issue Book</h2>
+      <label for="issueBookId">Book</label><select id="issueBookId"></select>
+      <label for="issueMemberId">Member</label><select id="issueMemberId"></select>
+      <button onclick="issueBook()">Issue Book</button>
+    </section>
+    <section>
+      <h2>4. Return Book</h2>
+      <label for="returnTransactionId">Active Loan</label><select id="returnTransactionId"></select>
+      <button onclick="returnBook()">Return Book</button>
+    </section>
+  </div>
+  <section>
+    <h2>Messages</h2>
+    <p id="message" aria-live="polite">Use the forms to manage the library.</p>
+    <button class="secondary" onclick="checkSingleton()">Verify Singleton (a === b)</button>
+  </section>
+  <section><h2>5. Books</h2><div class="scroll"><table><thead><tr><th>ID</th><th>Title</th><th>Author</th><th>Total</th><th>Available</th></tr></thead><tbody id="booksTable"></tbody></table></div></section>
+  <section><h2>6. Members</h2><div class="scroll"><table><thead><tr><th>ID</th><th>Name</th></tr></thead><tbody id="membersTable"></tbody></table></div></section>
+  <section><h2>7. Transaction History</h2><div class="scroll"><table><thead><tr><th>Transaction</th><th>Book</th><th>Member</th><th>Issued At</th><th>Returned At</th><th>Status</th></tr></thead><tbody id="transactionsTable"></tbody></table></div></section>
+  <p class="subtitle">Educational demonstration: data is stored in memory and resets when the page reloads.</p>
+</main>
+<script>
+  // SINGLETON: an immediately invoked function creates a private scope.
+  const LibraryManager = (function () {
+    // This variable can hold only the one manager created by getInstance().
+    let instance;
+
+    // Create the actual manager object; this function is private.
+    function createLibraryManager() {
+      // Store books and members in Maps keyed by their unique IDs.
+      const books = new Map();
+      const members = new Map();
+      // Store every issue/return transaction in a shared array.
+      const transactions = [];
+      // Keep a counter for unique transaction IDs.
+      let nextTransactionId = 1;
+
+      // Expose methods, but keep the underlying collections private.
+      return {
+        // Register a new book with an available quantity.
+        addBook(id, title, author, quantity) {
+          // Reject missing fields, duplicate IDs and invalid quantities.
+          if (!id || !title || !author) throw Error('Complete all book fields.');
+          if (!Number.isSafeInteger(quantity) || quantity < 1) throw Error('Quantity must be a positive whole number.');
+          if (books.has(id)) throw Error('Book ID already exists.');
+          // Initially, all copies of the book are available.
+          books.set(id, { id, title, author, total: quantity, available: quantity });
+          return 'Book added successfully.';
+        },
+        // Register a library member using a unique ID.
+        registerMember(id, name) {
+          if (!id || !name) throw Error('Enter Member ID and name.');
+          if (members.has(id)) throw Error('Member ID already exists.');
+          members.set(id, { id, name });
+          return 'Member registered successfully.';
+        },
+        // Issue one available copy to a registered member.
+        issueBook(bookId, memberId) {
+          const book = books.get(bookId);
+          if (!book) throw Error('Select a valid book.');
+          if (!members.has(memberId)) throw Error('Select a registered member.');
+          if (book.available < 1) throw Error('No available copies of this book.');
+          // Prevent the same member borrowing the same book twice at once.
+          if (transactions.some(t => t.bookId === bookId && t.memberId === memberId && !t.returnedAt)) {
+            throw Error('This member already has an active loan for this book.');
+          }
+          // Reduce the count of available copies.
+          book.available--;
+          // Record the issue transaction with its timestamp.
+          transactions.push({ id: nextTransactionId++, bookId, memberId, issuedAt: new Date().toLocaleString(), returnedAt: null });
+          return 'Book issued successfully.';
+        },
+        // Return a specific active loan by transaction ID.
+        returnBook(transactionId) {
+          const transaction = transactions.find(t => t.id === transactionId);
+          if (!transaction || transaction.returnedAt) throw Error('Select a valid active loan.');
+          // Restore the book's available-copy count.
+          books.get(transaction.bookId).available++;
+          // Record the return timestamp on the existing transaction.
+          transaction.returnedAt = new Date().toLocaleString();
+          return 'Book returned successfully.';
+        },
+        // Return copies of the collections to protect internal state.
+        getBooks() { return [...books.values()].map(book => ({ ...book })); },
+        getMembers() { return [...members.values()].map(member => ({ ...member })); },
+        getTransactions() { return transactions.map(transaction => ({ ...transaction })); }
+      };
+    }
+
+    // Public entry point: all modules must call this method.
+    return {
+      getInstance() {
+        // Construct the manager only on the first request.
+        if (!instance) {
+          instance = createLibraryManager();
+          console.log('New LibraryManager created.');
+        } else {
+          console.log('Existing LibraryManager reused.');
+        }
+        // Return the exact same object reference every time.
+        return instance;
+      }
+    };
+  })();
+
+  // Get the one shared manager for the entire page.
+  const library = LibraryManager.getInstance();
+  // Display that the Singleton instance has been initialized.
+  document.getElementById('instanceStatus').textContent = 'LibraryManager instance: 1 shared object';
+
+  // Read a text field and remove surrounding whitespace.
+  function valueOf(id) { return document.getElementById(id).value.trim(); }
+
+  // Show feedback; textContent prevents interpreting messages as HTML.
+  function showMessage(message, error = false) {
+    const element = document.getElementById('message');
+    element.textContent = message;
+    element.className = error ? 'error' : 'status';
+  }
+
+  // Execute an operation and handle validation errors consistently.
+  function runOperation(operation) {
+    try { showMessage(operation()); refresh(); }
+    catch (error) { showMessage(error.message, true); }
+  }
+
+  // HTML button handler: add a book through the Singleton.
+  function addBook() {
+    runOperation(() => library.addBook(valueOf('bookId'), valueOf('bookTitle'), valueOf('bookAuthor'), Number(valueOf('bookQuantity'))));
+  }
+
+  // HTML button handler: register a member through the Singleton.
+  function registerMember() {
+    runOperation(() => library.registerMember(valueOf('memberId'), valueOf('memberName')));
+  }
+
+  // HTML button handler: issue a book through the Singleton.
+  function issueBook() {
+    runOperation(() => library.issueBook(valueOf('issueBookId'), valueOf('issueMemberId')));
+  }
+
+  // HTML button handler: return a loan through the Singleton.
+  function returnBook() {
+    runOperation(() => library.returnBook(Number(valueOf('returnTransactionId'))));
+  }
+
+  // Prove that two getInstance() calls return the same object.
+  function checkSingleton() {
+    const a = LibraryManager.getInstance();
+    const b = LibraryManager.getInstance();
+    showMessage('Singleton verified: a === b is ' + (a === b));
+  }
+
+  // Safely create a table cell using textContent.
+  function addCell(row, text) {
+    const cell = row.insertCell();
+    cell.textContent = String(text);
+  }
+
+  // Replace a table's rows using plain text, not HTML injection.
+  function renderTable(id, records, fields) {
+    const body = document.getElementById(id);
+    body.replaceChildren();
+    for (const record of records) {
+      const row = body.insertRow();
+      for (const field of fields) addCell(row, field(record));
+    }
+  }
+
+  // Fill a dropdown with records; no HTML string interpolation is used.
+  function fillSelect(id, records, getValue, getLabel) {
+    const select = document.getElementById(id);
+    const previous = select.value;
+    select.replaceChildren();
+    for (const record of records) {
+      const option = document.createElement('option');
+      option.value = getValue(record);
+      option.textContent = getLabel(record);
+      select.appendChild(option);
+    }
+    if ([...select.options].some(option => option.value === previous)) select.value = previous;
+  }
+
+  // Refresh all views from the same manager instance.
+  function refresh() {
+    const books = library.getBooks();
+    const members = library.getMembers();
+    const transactions = library.getTransactions();
+    // Show registered books and available quantities.
+    renderTable('booksTable', books, [b => b.id, b => b.title, b => b.author, b => b.total, b => b.available]);
+    // Show registered library members.
+    renderTable('membersTable', members, [m => m.id, m => m.name]);
+    // Show the complete transaction history.
+    renderTable('transactionsTable', transactions, [t => t.id, t => t.bookId, t => t.memberId, t => t.issuedAt, t => t.returnedAt || '-', t => t.returnedAt ? 'Returned' : 'Issued']);
+    // Offer only books with copies currently available for issue.
+    fillSelect('issueBookId', books.filter(b => b.available > 0), b => b.id, b => `${b.id} - ${b.title} (${b.available} available)`);
+    // Offer registered members for book issue.
+    fillSelect('issueMemberId', members, m => m.id, m => `${m.id} - ${m.name}`);
+    // Offer only active loans for book return.
+    fillSelect('returnTransactionId', transactions.filter(t => !t.returnedAt), t => String(t.id), t => `#${t.id} - ${t.bookId} / ${t.memberId}`);
+  }
+
+  // Render the empty initial library state.
+  refresh();
+</script>
+</body>
+</html>
